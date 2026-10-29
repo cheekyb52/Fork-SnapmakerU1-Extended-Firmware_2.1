@@ -1,8 +1,6 @@
-> **2.1 port under review.** Source guards are retained. A passing build and a separate hardware acceptance are required before using this port. Prior 2.0 live results do not validate 2.1.
+# Independent tool calibration
 
-# Independent tool calibration — firmware 2.1 port assessment
-
-**Project: 0.3.0-dev1 | CFG: 0.1.1 | Nozzle workaround: 0.1.0 | Updated: 2026-10-29**
+**Project: 0.3.0-dev1 | CFG: 0.1.1 | Nozzle workaround: 0.1.1 | Updated: 2026-10-29**
 
 Optional usermod maintained by cheekyb52. Compose it with the existing extended
 firmware using `PROFILE=extended-cheeky_b52`. This adds no new base firmware profile.
@@ -47,18 +45,18 @@ The stage rejects an unreviewed source hash before patching, checks the modified
 hash and Python syntax, and runs eight checks against the actual validation AST.
 They reproduce the stock false mismatch, exercise mixed/uniform and unused-tool
 cases, preserve the rest of the module, and retain volume/material rejection.
-The previous manual workaround has been used on one U1; this integrated image
+The previous 2.0 manual workaround has been used on one U1; this 2.1 image
 still needs its own hardware acceptance.
 
 ## Build
 
 Place this directory at `overlays/mods/cheeky_b52/` in the Extended Firmware repository.
 The live-tested upstream commit is `4bd40f7eb4e396d275c7ede0b7f15d0788588696`.
-The port-assessment base is upstream `36fbd40c63ad83818ef3a7b2f8facef48814dd58`
-(2026-10-29), the final upstream 2.0 source before the 2.1 transition.
-This includes HelixScreen 1.0.7, the v4l2-mpp update, and preservation of the
-extra MCU payload and header version when repacking firmware.
-The 2.1 port is maintained separately; this build remains based on 2.0.0.205.
+The 2.1 port is based on upstream `36fbd40c63ad83818ef3a7b2f8facef48814dd58`
+(2026-10-29), using stock firmware `2.1.0.157`. Paxx labels this an initial
+rolling/develop build. Firmware container round trips, header-version preservation
+and byte-identical extra MCU payload checks are required before publication.
+The previous 2.0 line remains available separately in the owner's original fork.
 The calibration native sources and stock calibration components are unchanged.
 Stage `03-mixed-nozzle` separately changes the print-start nozzle check.
 All exact source and packed-payload guards remain enabled.
@@ -106,7 +104,18 @@ Firmware upgrades replace an unmodified packaged CFG 0.1.0 through the existing
 checksum-based config cleanup. Locally modified CFGs are preserved and receive
 a `.default` copy; review those customizations against CFG 0.1.1 before replacing.
 
-## Tested status
+The three calibration source files and atomic writer are byte-identical to
+the reviewed 2.0 source set. The 2.1 print-task file changes automatic
+filament replenishment; those changes and Paxx's spool/preferences patches
+are preserved. Only the faulty print-start diameter check is removed.
+The 2.1 stage baseline and modified SHA-256 values are:
+
+```text
+7136fa5a4c5a09533f9f2b765c3c17bcfbb9d63fe43eb108679fc1eb4f088004  extended print_task_config.py baseline
+0f40a7499a4ace327e7a7fce6122b294ae9fe2a40f3ee4ec75a7ab344fb9b101  modified print_task_config.py
+```
+
+## Earlier 2.0 test evidence
 
 Planned testing completed on one U1 and the exact captured PR760 source set:
 94 offline checks; independent T1/T2/T3 saves and restart persistence; stock full

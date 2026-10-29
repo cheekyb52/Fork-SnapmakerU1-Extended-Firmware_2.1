@@ -7,5 +7,5 @@ rootfs=$(realpath -- "$1")
 [[ -d "$rootfs/home/lava/klipper/klippy" ]] || { echo "Missing Klipper tree" >&2; exit 1; }
 cd -- "$rootfs"
 sha256sum --check --strict <<'MIXED_NOZZLE_BASELINE'
-8298babc42526ef4a4026207927e91c52fd1ca5f1e1afe6b1f08b0dbdced82c0  home/lava/klipper/klippy/extras/print_task_config.py
+7136fa5a4c5a09533f9f2b765c3c17bcfbb9d63fe43eb108679fc1eb4f088004  home/lava/klipper/klippy/extras/print_task_config.py
 MIXED_NOZZLE_BASELINE
