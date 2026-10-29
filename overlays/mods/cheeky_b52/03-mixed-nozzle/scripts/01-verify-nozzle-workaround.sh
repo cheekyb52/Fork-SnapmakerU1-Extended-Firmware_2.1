@@ -7,7 +7,7 @@ rootfs=$(realpath -- "$1")
 [[ -d "$rootfs/home/lava/klipper/klippy" ]] || { echo "Missing Klipper tree" >&2; exit 1; }
 stage_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 (cd -- "$rootfs" && sha256sum --check --strict <<'MIXED_NOZZLE_MODIFIED'
-1ef6e8ade716fab99715e00e58502016197f43d3147620018a34c681e9d312eb  home/lava/klipper/klippy/extras/print_task_config.py
+0f40a7499a4ace327e7a7fce6122b294ae9fe2a40f3ee4ec75a7ab344fb9b101  home/lava/klipper/klippy/extras/print_task_config.py
 MIXED_NOZZLE_MODIFIED
 )
 python3 -B "$stage_dir/tests/check_nozzle_validation.py" \

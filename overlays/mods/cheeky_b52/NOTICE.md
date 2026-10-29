@@ -1,6 +1,6 @@
 # Source attribution
 
-**Calibration native: 0.2.0-dev1 | CFG: 0.1.1 | Nozzle workaround: 0.1.0 | Updated: 2026-10-28**
+**Calibration native: 0.2.0-dev1 | CFG: 0.1.1 | Nozzle workaround: 0.1.1 | Updated: 2026-10-29**
 
 The 2026-10-18 macro revision starts secondary-tool calibration directly by default. Backup acknowledgement is optional; native source changes are unchanged.
 
@@ -34,3 +34,11 @@ diameter check in `cmd_SET_PRINT_TASK_PARAMETERS`. Its original GPLv3 notice and
 the rest of its code are retained. The stage adds exact source/modified hashes
 and isolated validation tests. The calibration native patch and CFG are unchanged.
 This workaround is included only when composing this personal usermod image.
+
+## Firmware 2.1 port — 2026-10-29
+
+The calibration patch and CFG remain unchanged. Nozzle workaround 0.1.1 is
+rebased onto the reviewed 2.1 print-task source after Paxx overlays. New automatic
+filament-replenishment behavior and existing spool/preferences changes are
+preserved. Only the faulty first-nozzle print-start diameter check is removed.
+The 2.1 image requires separate hardware acceptance.
