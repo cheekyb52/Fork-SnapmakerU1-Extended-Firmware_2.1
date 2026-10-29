@@ -24,7 +24,10 @@ jobs:
           test "$(git rev-parse FETCH_HEAD)" = "$SOURCE_SHA"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          source_tree=$(git rev-parse "$SOURCE_SHA^{tree}")
+          git read-tree "$SOURCE_SHA"
+          git ls-files -z .github/workflows | xargs -0 -r git update-index --force-remove --
+          git read-tree --prefix=.github/workflows/ "$GITHUB_SHA:.github/workflows"
+          source_tree=$(git write-tree)
           imported=$(printf 'Import reviewed Paxx 2.1 port assessment with source history [skip ci]\n' | git commit-tree "$source_tree" -p "$GITHUB_SHA" -p "$SOURCE_SHA")
           git push origin "$imported:refs/heads/main"
           echo "Imported source $SOURCE_SHA as $imported"
