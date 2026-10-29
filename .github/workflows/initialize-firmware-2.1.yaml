@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-FileCopyrightText: Copyright (c) 2026 cheekyb52
+name: Initialize separate firmware 2.1 repository
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  initialize:
+    if: github.repository == 'cheekyb52/Fork-SnapmakerU1-Extended-Firmware_2.1'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Import reviewed public source with history
+        env:
+          SOURCE_SHA: '2401790a37db9c449ac40ebe7589cef265d09aab'
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = cheekyb52/Fork-SnapmakerU1-Extended-Firmware_2.1
+          git fetch --no-tags https://github.com/cheekyb52/SnapmakerU1-Extended-Firmware.git "$SOURCE_SHA"
+          test "$(git rev-parse FETCH_HEAD)" = "$SOURCE_SHA"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          source_tree=$(git rev-parse "$SOURCE_SHA^{tree}")
+          imported=$(printf 'Import reviewed Paxx 2.1 port assessment with source history [skip ci]\n' | git commit-tree "$source_tree" -p "$GITHUB_SHA" -p "$SOURCE_SHA")
+          git push origin "$imported:refs/heads/main"
+          echo "Imported source $SOURCE_SHA as $imported"
