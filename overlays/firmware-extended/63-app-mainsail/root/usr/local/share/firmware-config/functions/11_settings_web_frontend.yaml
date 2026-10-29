@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-PackageHomePage: https://github.com/paxx12-snapmaker-u1/SnapmakerU1-Extended-Firmware
+# SPDX-FileCopyrightText: Copyright (c) 2026 @paxx12
+
+links:
+  web-interface:
+    url: /
+    icon: "🌐"
+    label: Web Interface
+    condition: null
+
+settings:
+  web:
+    items:
+      web-frontend:
+        label: Frontend
+        description: Choose between Fluidd and Mainsail as the web interface.
+        get_cmd: [/usr/local/bin/extended-config.py, get, /home/lava/printer_data/config/extended/extended2.cfg, web, frontend, fluidd]
+        options:
+          mainsail:
+            label: Mainsail
+            cmd:
+              - bash
+              - -xc
+              - |
+                /usr/local/bin/extended-config.py add /home/lava/printer_data/config/extended/extended2.cfg web frontend mainsail &&
+                /etc/init.d/S49nginx_conf restart &&
+                /usr/sbin/nginx -s reload
+          fluidd:
+            label: Fluidd
+            cmd:
+              - bash
+              - -xc
+              - |
+                /usr/local/bin/extended-config.py add /home/lava/printer_data/config/extended/extended2.cfg web frontend fluidd &&
+                /etc/init.d/S49nginx_conf restart &&
+                /usr/sbin/nginx -s reload
+        default: fluidd

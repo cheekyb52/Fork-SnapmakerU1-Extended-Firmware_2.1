@@ -1,0 +1,120 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-PackageHomePage: https://github.com/paxx12-snapmaker-u1/SnapmakerU1-Extended-Firmware
+# SPDX-FileCopyrightText: Copyright (c) 2026 @paxx12
+
+EXTENDED_CFG="/home/lava/printer_data/config/extended/extended2.cfg"
+CAMERA_INTERNAL=$(/usr/local/bin/extended-config.py get "$EXTENDED_CFG" camera internal paxx12)
+
+CMD_FAKE_SERVICE=/usr/local/bin/fake-service
+CMD_FAKE_SERVICE_ARGS="--retry 3"
+CAMERA_LOGS=$(/usr/local/bin/extended-config.py get "$EXTENDED_CFG" camera logs "")
+if [ "$CAMERA_LOGS" = "syslog" ]; then
+    CMD_FAKE_SERVICE_ARGS="$CMD_FAKE_SERVICE_ARGS --syslog"
+fi
+RTSP_ENABLED=$(/usr/local/bin/extended-config.py get "$EXTENDED_CFG" camera rtsp false)
+
+INTERNAL_RESOLUTION=$(/usr/local/bin/extended-config.py get "$EXTENDED_CFG" camera internal_resolution 1080p25)
+case "$INTERNAL_RESOLUTION" in
+    1080p30) INTERNAL_WIDTH=1920; INTERNAL_HEIGHT=1080; INTERNAL_FPS=30 ;;
+    1080p25) INTERNAL_WIDTH=1920; INTERNAL_HEIGHT=1080; INTERNAL_FPS=25 ;;
+    1080p15) INTERNAL_WIDTH=1920; INTERNAL_HEIGHT=1080; INTERNAL_FPS=15 ;;
+    1080p5)  INTERNAL_WIDTH=1920; INTERNAL_HEIGHT=1080; INTERNAL_FPS=5  ;;
+    *)       INTERNAL_WIDTH=1920; INTERNAL_HEIGHT=1080; INTERNAL_FPS=25 ;;
+esac
+
+CMD_CAPTURE="/usr/local/bin/capture-v4l2-raw-mpp --device /dev/video11 --format nv12 --jpeg-quality 7 --jpeg-sock /tmp/capture-mipi-jpeg.sock --mjpeg-sock /tmp/capture-mipi-mjpeg.sock --h264-sock /tmp/capture-mipi-h264.sock --raw-frame-sock /tmp/capture-mipi-raw.sock --width $INTERNAL_WIDTH --height $INTERNAL_HEIGHT --fps $INTERNAL_FPS --buffers 3"
+
+CMD_WEBRTC="/usr/local/bin/stream-webrtc --h264-sock /tmp/capture-mipi-h264.sock --webrtc-sock /tmp/capture-mipi-webrtc.sock"
+
+CMD_HTTP="/usr/bin/python3 /usr/local/bin/stream-http.py --jpeg-sock /tmp/capture-mipi-jpeg.sock --mjpeg-sock /tmp/capture-mipi-mjpeg.sock --h264-sock /tmp/capture-mipi-h264.sock --webrtc-sock /tmp/capture-mipi-webrtc.sock --control-sock /tmp/v4l2-control-mipi.sock --bind 127.0.0.1"
+
+CMD_CTRL="/usr/bin/python3"
+CMD_CTRL_ARGS="/usr/local/bin/control-v4l2.py --device /dev/v4l-subdev2 --sock /tmp/v4l2-control-mipi.sock --state-file /oem/printer_data/config/extended/camera/case.json"
+
+CMD_RTSP="/usr/local/bin/stream-rtsp --h264-sock /tmp/capture-mipi-h264.sock --rtsp-port 8554 --max-clients 4"
+
+start() {
+    if [ "$CAMERA_INTERNAL" != "paxx12" ]; then
+        echo "Internal MIPI camera is not set to 'paxx12', not starting."
+        return
+    fi
+
+    if [ ! -e /dev/video11 ]; then
+        echo "MIPI camera device /dev/video11 not found, not starting."
+        return
+    fi
+
+    . /usr/local/sbin/limits-helper.sh
+    limits_enter camera-mipi 64M
+
+    umask 0022
+    mkdir -p /userdata/.tmp_timelapse
+    chown -R lava:lava /userdata/.tmp_timelapse
+
+    printf "Starting capture-mipi-mpp: "
+    start-stop-daemon -S -b -q -m -p /var/run/capture-mipi-mpp.pid -x $CMD_FAKE_SERVICE -- $CMD_FAKE_SERVICE_ARGS $CMD_CAPTURE
+    echo "OK"
+
+    printf "Starting stream-webrtc: "
+    start-stop-daemon -S -b -q -m -p /var/run/stream-mipi-webrtc.pid -c lava -x $CMD_FAKE_SERVICE -- $CMD_FAKE_SERVICE_ARGS $CMD_WEBRTC
+    echo "OK"
+
+    printf "Starting control-v4l2: "
+    start-stop-daemon -S -b -q -m -p /var/run/control-mipi-v4l2.pid -c lava -x $CMD_CTRL -- $CMD_CTRL_ARGS
+    echo "OK"
+
+    printf "Starting stream-http: "
+    start-stop-daemon -S -b -q -m -p /var/run/stream-mipi-http.pid -c lava -x $CMD_FAKE_SERVICE -- $CMD_FAKE_SERVICE_ARGS $CMD_HTTP
+    echo "OK"
+
+    if [ "$RTSP_ENABLED" = "true" ]; then
+        printf "Starting stream-rtsp: "
+        start-stop-daemon -S -b -q -m -p /var/run/stream-mipi-rtsp.pid -c lava -x $CMD_FAKE_SERVICE -- $CMD_FAKE_SERVICE_ARGS $CMD_RTSP
+        echo "OK"
+    fi
+}
+
+stop() {
+    if [ -f /var/run/stream-mipi-rtsp.pid ]; then
+        printf "Stopping stream-rtsp: "
+        start-stop-daemon -K -q -p /var/run/stream-mipi-rtsp.pid
+        echo "OK"
+    fi
+
+    printf "Stopping stream-http: "
+    start-stop-daemon -K -q -p /var/run/stream-mipi-http.pid
+    echo "OK"
+
+    printf "Stopping stream-webrtc: "
+    start-stop-daemon -K -q -p /var/run/stream-mipi-webrtc.pid
+    echo "OK"
+
+    printf "Stopping capture-mipi-mpp: "
+    start-stop-daemon -K -q -p /var/run/capture-mipi-mpp.pid
+    echo "OK"
+
+    printf "Stopping control-v4l2: "
+    start-stop-daemon -K -q -p /var/run/control-mipi-v4l2.pid
+    echo "OK"
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart|reload)
+        stop
+        sleep 1
+        start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac
+
+exit 0

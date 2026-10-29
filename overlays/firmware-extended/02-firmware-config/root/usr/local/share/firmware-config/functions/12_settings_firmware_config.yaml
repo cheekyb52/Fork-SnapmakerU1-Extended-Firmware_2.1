@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-PackageHomePage: https://github.com/paxx12-snapmaker-u1/SnapmakerU1-Extended-Firmware
+# SPDX-FileCopyrightText: Copyright (c) 2026 @paxx12
+
+settings:
+  web:
+    items:
+      firmware-config:
+        label: Firmware Config
+        description: Enable or disable this web configuration interface.
+        get_cmd:
+          - /usr/local/bin/extended-config.py
+          - get
+          - /home/lava/printer_data/config/extended/extended2.cfg
+          - web
+          - firmware_config
+          - "true"
+        options:
+          "true":
+            label: Enabled
+            cmd:
+              - bash
+              - -xc
+              - |
+                /usr/local/bin/extended-config.py add /home/lava/printer_data/config/extended/extended2.cfg web firmware_config true &&
+                /etc/init.d/S99firmware-config restart
+          "false":
+            label: Disabled
+            confirm: Disabling will remove access to this page. Re-enabling requires editing extended2.cfg manually.
+            cmd:
+              - bash
+              - -xc
+              - |
+                /usr/local/bin/extended-config.py add /home/lava/printer_data/config/extended/extended2.cfg web firmware_config false &&
+                /etc/init.d/S99firmware-config stop
+        default: "true"

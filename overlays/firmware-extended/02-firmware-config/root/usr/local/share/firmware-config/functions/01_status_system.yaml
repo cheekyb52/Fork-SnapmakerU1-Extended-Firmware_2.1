@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-PackageHomePage: https://github.com/paxx12-snapmaker-u1/SnapmakerU1-Extended-Firmware
+# SPDX-FileCopyrightText: Copyright (c) 2026 @paxx12
+
+status:
+  version:
+    title: System Information
+    items:
+      - label: Base
+        cmd: cat /etc/BASE_VERSION
+      - label: Version
+        cmd: cat /etc/BUILD_VERSION
+      - label: Profile
+        cmd: cat /etc/BUILD_PROFILE
+      - label: Active Firmware
+        cmd: "awk '/android.*slot.*=/{gsub(/.*=/,\"\"); print ($0==\"_a\")?\"A\":\"B\"}' /proc/cmdline"
+      - label: Device Name
+        cmd: cat /home/lava/printer_data/.device_name

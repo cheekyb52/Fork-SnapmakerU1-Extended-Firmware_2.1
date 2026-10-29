@@ -1,0 +1,87 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-PackageHomePage: https://github.com/paxx12-snapmaker-u1/SnapmakerU1-Extended-Firmware
+# SPDX-FileCopyrightText: Copyright (c) 2026 @paxx12
+
+DEFAULT_DIR="/usr/local/share/firmware-config/extended"
+EXTENDED_DIR="/home/lava/printer_data/config/extended"
+
+start() {
+    # `.txt.txt` covers Windows users with "Hide extensions for known file types" enabled,
+    # who type `extended-recover.txt`/`full-recover.txt` but get a double extension from Explorer.
+
+    # Full recovery clears the extended config, printer data and the debug/overlay
+    # persistence flag, then reboots so the cleared flags take effect: `/oem/.debug`
+    # is read by `S01aoverlayfs` and `/oem/.printer_data` by `S48setup-lava-env`,
+    # both of which run before this script, so the reset only applies on next boot.
+    if [ -f /mnt/udisk/full-recover.txt ] || [ -f /mnt/udisk/full-recover.txt.txt ] || [ -f /oem/.full-recover ]; then
+        echo "Performing full recovery: removing extended config, printer data and debug flag, then rebooting..."
+        rm -f /mnt/udisk/full-recover.txt /mnt/udisk/full-recover.txt.txt /oem/.full-recover
+        rm -f /oem/.printer_data /oem/.debug
+        touch /oem/.extended-recover
+        sync
+        /sbin/reboot
+        exit 0
+    fi
+
+    if [ -f /mnt/udisk/extended-recover.txt ] || [ -f /mnt/udisk/extended-recover.txt.txt ] || [ -f /oem/.extended-recover ]; then
+        # Move existing extended config to a backup location
+        # find the next available backup number
+        if [ -d "$EXTENDED_DIR" ]; then
+            BACKUP_NUM=1
+            while [ -d "$EXTENDED_DIR.backup.$BACKUP_NUM" ]; do
+                BACKUP_NUM=$((BACKUP_NUM + 1))
+            done
+            mv "$EXTENDED_DIR" "$EXTENDED_DIR.backup.$BACKUP_NUM"
+        fi
+        rm -f /mnt/udisk/extended-recover.txt /mnt/udisk/extended-recover.txt.txt /oem/.extended-recover
+    fi
+
+    mkdir -p "$EXTENDED_DIR"
+
+    # Delete old files with matching checksums to force cleanup
+    echo "Performing forced cleanup of old config files..."
+    pushd "$EXTENDED_DIR"
+    sha256sum -c /usr/local/share/firmware-config/force-cleanup.sha256 | \
+        awk -F':' '/: OK/{print $1}' |
+        xargs -r rm -v --
+    popd
+
+    # Copy default config files without overwriting existing ones
+    echo "Copying default config files..."
+    cp -rn "$DEFAULT_DIR/." "$EXTENDED_DIR/"
+
+    # Remove invalid symlinks that may exist in the extended config directory
+    # The busybox `find` command does not support `-xtype l`, so we use a workaround to find broken symlinks
+    echo "Removing invalid symlinks..."
+    find "$EXTENDED_DIR" -type l ! -exec test -e {} \; -exec rm -v {} \;
+
+    # Remove old .default files and create new ones for files that differ
+    echo "Updating .default files..."
+    find "$EXTENDED_DIR" -name "*.default" -exec rm -v {} +
+    pushd "$DEFAULT_DIR" > /dev/null
+    diff -rq . "$EXTENDED_DIR" \
+        | sed -n 's/^Files \.\/\(.*\) and .* differ$/\1/p' \
+        | xargs -I{} cp -v {} "$EXTENDED_DIR/{}.default"
+    popd > /dev/null
+
+    echo "Setting ownership to lava user..."
+    chown -R lava:lava "$EXTENDED_DIR"
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        ;;
+    restart|reload)
+        start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac
+
+exit 0
