@@ -27,6 +27,13 @@ port requires its own printer acceptance. Match the exact source guards, obtain
 verified configuration/native backups before flashing or saving, and use normal
 firmware operation without debug or factory mode.
 
+**Build available:** [Firmware 2.1 test build 1.1](https://github.com/cheekyb52/Fork-SnapmakerU1-Extended-Firmware_2.1/releases/tag/calibration-2.1-test-1-1)
+passed the [full CI run](https://github.com/cheekyb52/Fork-SnapmakerU1-Extended-Firmware_2.1/actions/runs/40963510158):
+64 calibration regressions against byte-matched native/macro payloads, eight
+nozzle-validation checks, six packed-payload checks, container round trips, and
+header/extra-MCU preservation. Its public checksum and source identity are verified.
+On-printer acceptance of this 2.1 image is pending.
+
 ## Source and attribution
 
 Built from [Paxx's Snapmaker U1 Extended Firmware](https://github.com/paxx12-snapmaker-u1/SnapmakerU1-Extended-Firmware).
